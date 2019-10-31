@@ -1,0 +1,52 @@
+Source: plasma-widget-lliurex-up-notifier
+Section: kde
+Priority: optional
+Uploaders: Maximiliano Curia <maxy@debian.org>
+Build-Depends: cmake (>= 2.8.12),
+               debhelper (>= 9),
+               extra-cmake-modules (>= 5.18.0~),
+               pkg-kde-tools (>= 0.15.18~),
+               libkf5plasma-dev (>= 5.17.0~),
+               libkf5i18n-dev (>= 5.17.0~),
+               libqt5x11extras5-dev (>= 5.4),
+               pkg-config,
+               qtbase5-dev (>= 5.4),
+               qtdeclarative5-dev (>= 5.4),
+	       libkf5runner-dev,
+	       libkf5notifications-dev,
+          kio-dev
+Standards-Version: 3.9.6
+Homepage: https://projects.kde.org/projects/kde/workspace/kdeplasma-addons
+Vcs-Git: https://anongit.neon.kde.org/kde/kdeplasma-addons
+Vcs-Browser: https://packaging.neon.kde.org/kde/kdeplasma-addons.git
+Maintainer: Neon CI <neon@kde.org>
+
+Package: plasma-widget-lliurex-up-notifier
+Architecture: any
+Depends: kpackagetool5,
+         libkf5purpose5,
+         plasma-framework,
+         plasma-workspace,
+         qml-module-org-kde-draganddrop,
+         qml-module-org-kde-kcoreaddons,
+         qml-module-org-kde-kio,
+         qml-module-org-kde-purpose,
+         qml-module-qtgraphicaleffects,
+         qml-module-qtquick-layouts,
+         qml-module-qtquick-window2,
+         qml-module-qtwebengine,
+         qml-module-qtwebkit,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: additional widgets for Plasma 5
+ This package contains additional Plasma 5 widgets shipped in the Plasma
+ addons module. Install it if you want a variety of widgets on your Plasma
+ desktop.
+ .
+ This package provides the following widgets:
+  * Lliurex-quota
+ .
+ This package is part of the KDE Plasma 5 addons module.
+
+
+

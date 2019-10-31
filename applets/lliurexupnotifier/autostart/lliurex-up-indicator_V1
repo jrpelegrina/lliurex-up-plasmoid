@@ -1,0 +1,375 @@
+#!/usr/bin/env python3
+
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk,Gio,GObject,GLib
+
+
+import os
+import subprocess
+import threading
+import sys
+import grp
+import re
+import time
+import shutil
+
+from aptdaemon import client
+
+import syslog
+#import dbus
+#from dbus.mainloop.glib import DBusGMainLoop
+
+
+import pyinotify
+from pyinotify import WatchManager, Notifier, ThreadedNotifier, EventsCodes, ProcessEvent
+
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+
+TARGET_FILE="/var/run/lliurexUp.lock"
+PLASMOID_DIR="/var/run/user/"
+LLXUP_RUN_TOKEN="llxup_run_token"
+REMOTE_UPDATE_TOKEN="remote_update_token"
+NEW_UPDATE_TOKEN="new_update_token"
+
+DISABLE_INDICATOR_TOKEN="/etc/lliurex-up-indicator/disableIndicator.token"
+
+
+
+class LlxUpPlasmoid:
+
+	GROUPS=["admins","adm"]
+	WATCH_DIR=os.path.expanduser("/var/run")
+
+	def __init__(self):
+
+
+		self.FREQUENCY=3600
+		self.APT_FRECUENCY=1200
+		self.updatedInfo=False
+		self.remoteUpdateInfo=False
+		self.is_working=False
+		self.is_cache_updated=True
+		self.last_check=0
+
+		user_uid=os.environ["KDE_SESSION_UID"]
+		self.plasmoid_dir=PLASMOID_DIR+user_uid+"/llxup_plasmoid"
+		self._plasmoid_watcher_dir()
+		self._menuMode()
+
+		if os.path.exists(TARGET_FILE):
+			self.lliurexUp_running=True
+		else:
+			self.lliurexUp_running=False
+
+		self.start_inotify()
+
+		if self.updatedInfo:
+			self.fcache=Gio.File.new_for_path("/var/cache/apt/pkgcache.bin")
+			self.mcache=self.fcache.monitor_file(Gio.FileMonitorFlags.NONE,None)
+			self.mcache.connect("changed",self.on_cache_changed)
+
+		GLib.timeout_add_seconds(5, self.worker)
+
+	#def __init__	
+			
+
+
+	def _plasmoid_watcher_dir(self):
+
+		if not os.path.exists(self.plasmoid_dir):
+			os.mkdir(self.plasmoid_dir)
+
+		
+	#def _plasmoid_watcher_dir
+
+	def _menuMode(self):
+
+		flavours=self._get_flavour()
+		users_group=self._get_user_group()
+
+		if users_group:
+			if 'None' not in flavours:
+				if 'client' not in flavours:
+					self.updatedInfo=True
+					
+	#def _menuMode		
+
+	def worker(self):
+		""" Timeout thread """
+		
+		if(self.is_working==False):
+			if self.lliurexUp_running: 
+				self.is_alive()
+
+			if not os.path.exists(os.path.expanduser(DISABLE_INDICATOR_TOKEN)):
+				if self.updatedInfo:
+					if not self.remoteUpdateInfo:
+						if(self.is_cache_updated==True):
+							self.upgrade()
+							self.last_check=0
+						else:
+							self.last_check+=5
+							if(self.last_check>self.FREQUENCY):
+								self.last_check=0
+								self.upgrade()	
+
+		return True	
+
+	#def worker	
+
+	def _get_flavour(self):
+
+		cmd='lliurex-version -v'
+		p=subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
+		result=p.communicate()[0]
+
+		if type(result) is bytes:
+			result=result.decode()
+
+		flavours = [ x.strip() for x in result.split(',') ]	
+		
+		return flavours
+
+	#def _get_flavour			
+	
+
+	def _get_user_group(self):
+		
+		user=os.environ["USER"]
+		group_found=False
+		
+		for g in grp.getgrall():
+			if(g.gr_name in LlxUpPlasmoid.GROUPS):
+				for member in g.gr_mem:
+					if(member==user):
+						group_found=True
+						
+		return group_found				
+
+	#def _get_user_group					
+					
+	def start_inotify(self):
+
+		t=threading.Thread(target=self._inotify)
+		t.daemon=True
+		t.start()		
+
+	#def start_inotify	
+
+	def _inotify(self):
+		
+		
+		wm=WatchManager()
+		mask=pyinotify.IN_CREATE
+			
+		class Process_handler(ProcessEvent):
+				
+			def __init__(self,main):
+				
+				self.main=main
+				
+			def process_IN_CREATE(self,event):
+
+				if os.path.expanduser(event.pathname)=='/var/run/lliurexUp.lock':
+					self.main.lliurexUp_running=True
+				
+	
+		notifier=Notifier(wm,Process_handler(self))
+		wdd=wm.add_watch(LlxUpPlasmoid.WATCH_DIR,mask,rec=True)
+			
+		while True:
+			try:
+					
+				notifier.process_events()
+				if notifier.check_events():
+					notifier.read_events()
+				
+			except Exception as e:
+				notifier.stop()
+					
+		return False	
+
+	#def _inotify	
+
+	def _remote_execute(self):
+
+		cont=0
+		remote_pts=[]
+		remote_users=[]
+		isrunning=[]
+		remote_executing=False
+
+		cmd='who | grep -v "(:0"'
+		p=subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
+		result=p.communicate()[0]
+
+		if type(result) is bytes:
+			result=result.decode()
+		remote_users=[ x.strip() for x in result.split('\n') ]
+		remote_users.pop()
+
+		for item in remote_users:
+			tmp=re.search('(pts/\w)',item)
+			try:
+				remote_pts.append(tmp.group(1))
+			except Exception as e:
+				pass
+
+
+		cmd='ps -ef | grep "lliurex-upgrade" | grep -v "grep"'
+		p=subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE)
+		result=p.communicate()[0]
+		if type(result) is bytes:
+			result=result.decode()
+		isrunning= [ x.strip() for x in result.split('\n') ]
+		isrunning.pop()
+
+
+		for item in isrunning:
+			if '?' in item:
+				cont=cont+1
+			for t in remote_pts:
+				if t in item:
+					cont=cont+1
+
+		if cont>0:
+			remote_executing=True
+
+		return remote_executing				
+
+	#def remote_execute	
+
+	def is_alive(self):
+
+		self.is_working=True
+
+		self._plasmoid_watcher_dir()
+
+		if os.path.exists(os.path.join(self.plasmoid_dir,NEW_UPDATE_TOKEN)):
+			os.remove(os.path.join(self.plasmoid_dir,NEW_UPDATE_TOKEN))
+
+		
+		if not os.path.exists(os.path.join(self.plasmoid_dir,LLXUP_RUN_TOKEN)):
+			print("No existe")
+			f=open(os.path.join(self.plasmoid_dir,LLXUP_RUN_TOKEN),'w')
+			f.close()
+
+		self.checkRemote=self._remote_execute()
+		self.remoteUpdateInfo=True
+
+		if self.checkRemote:
+			if not os.path.exists(os.path.join(self.plasmoid_dir,REMOTE_UPDATE_TOKEN)):
+				f=open(os.path.join(self.plasmoid_dir,REMOTE_UPDATE_TOKEN),'w')
+				f.close()
+		GLib.timeout_add(100,self.check_status)	
+				
+		return
+
+	#def is_alive	
+		
+	def check_status(self):
+
+		if os.path.exists(TARGET_FILE):
+			
+			return True
+			
+		else:
+			self._plasmoid_watcher_dir()
+			if self.checkRemote:
+				if os.path.exists(os.path.join(self.plasmoid_dir,REMOTE_UPDATE_TOKEN)):
+					os.remove(os.path.join(self.plasmoid_dir,REMOTE_UPDATE_TOKEN))
+
+			if os.path.exists(os.path.join(self.plasmoid_dir,LLXUP_RUN_TOKEN)):
+				os.remove(os.path.join(self.plasmoid_dir,LLXUP_RUN_TOKEN))	
+
+			self.remoteUpdateInfo=False
+			self.lliurexUp_running=False
+			self.is_working=False
+			self.is_cache_updated=False
+		
+			return False		
+
+	#def check_status	
+	
+	def on_cache_changed(self,monitor,file,other,type):
+		"""Apt cache notification event"""
+	
+		
+		if(type==Gio.FileMonitorEvent.CHANGES_DONE_HINT and self.last_check>self.APT_FRECUENCY): #ignore cache updates at intervals smaller than APT_FRECUENCY
+			self.is_cache_updated=True
+		
+	
+	#def on_cache_changed
+
+
+	
+	def upgrade(self):
+		"""
+		Performs an upgrade simulation.
+		Cache will be updated if needed.
+		"""
+	
+		self.is_working=True
+
+		
+		apt_client=client.AptClient()
+		
+		if(self.is_cache_updated==False):
+			apt_client.update_cache(wait=True)
+			self.is_cache_updated=True
+			
+		transaction=apt_client.upgrade_system()
+
+		transaction.simulate()
+		#this sync is needed in order to update transaction properties after simulation
+		#credits go to Lubuntu Team as this is completly undocumented :)
+		transaction.sync()
+
+
+		#transaction dependencies []
+		# install transaction.dependencies reinstall remove purge upgrade
+		
+		packages=[]
+		cont=0
+
+		for d in transaction.dependencies:
+			if cont<5:
+				for p in d:
+					packages.append(d)
+			cont+=1		
+		
+			
+		if(len(packages)>0):
+			self._plasmoid_watcher_dir()
+			if not os.path.exists(os.path.join(self.plasmoid_dir,NEW_UPDATE_TOKEN)):
+				f=open(os.path.join(self.plasmoid_dir,NEW_UPDATE_TOKEN),'w')
+				f.close()
+		
+		self.is_working=False
+		self.is_cache_updated=False
+		
+		
+	#def upgrade
+
+	def quit(self):
+
+		if os.path.exists(PLASMOID_DIR):
+			shutil.rmtree(PLASMOID_DIR)
+
+		Gtk.main_quit()	
+
+
+	#def quit		
+
+	
+#class LlxUpPlasmoid
+
+if __name__=="__main__":
+
+
+	llxxupplasmoid=LlxUpPlasmoid()
+	GObject.threads_init()
+	Gtk.main()

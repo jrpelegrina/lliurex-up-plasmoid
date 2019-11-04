@@ -177,7 +177,8 @@ void LliurexUpIndicator::changeTryIconState(int state){
         setToolTip(tooltip);
         setSubToolTip(subtooltip);
         setIconName("lliurexupnotifier");
-        KNotification *notification = new KNotification(QStringLiteral("notification"),KNotification::CloseOnTimeout | KNotification::DefaultEvent);
+        /*
+        KNotification *notification = new KNotification(QStringLiteral("notification"), KNotification::CloseOnTimeout | KNotification::DefaultEvent);
         notification->setIconName(QStringLiteral("lliurex-up-indicator"));
         notification->setTitle(tooltip);
         notification->setText(subtooltip);
@@ -185,6 +186,13 @@ void LliurexUpIndicator::changeTryIconState(int state){
         notification->setActions({name});
         connect(notification, &KNotification::action1Activated, this, &LliurexUpIndicator::launch_llxup);
         notification->sendEvent();
+        */
+        m_updatesAvailableNotification = KNotification::event(QStringLiteral("Update"), subtooltip, {}, "lliurex-up-indicator", nullptr, KNotification::CloseOnTimeout , QStringLiteral("llxupnotifier"));
+        const QString name = i18n("Update now");
+        m_updatesAvailableNotification->setDefaultAction(name);
+        m_updatesAvailableNotification->setActions({name});
+        connect(m_updatesAvailableNotification, QOverload<unsigned int>::of(&KNotification::activated), this, &LliurexUpIndicator::launch_llxup);
+
 
     }else if (state==2){
         setStatus(NeedsAttentionStatus);
@@ -192,11 +200,19 @@ void LliurexUpIndicator::changeTryIconState(int state){
         setToolTip(tooltip);
         setSubToolTip(subtooltip);
         setIconName("lliurexupnotifier-running");
-        KNotification *notification = new KNotification(QStringLiteral("notification"), KNotification::CloseOnTimeout | KNotification::DefaultEvent);
+        /*
+        KNotification *notification = new KNotification(QStringLiteral("remoteUpdate"), KNotification::CloseOnTimeout | KNotification::DefaultEvent);
         notification->setIconName(QStringLiteral("lliurex-up-indicator"));
         notification->setTitle(tooltip);
         notification->setText(subtooltip);
-        notification->sendEvent();
+        notification->addContext( "llxupabstractnotifier");
+        notification->sendEvent();*/
+        KNotification *notification = KNotification::event(QStringLiteral("remoteUpdate"), subtooltip, {}, "lliurex-up-indicator", nullptr, KNotification::CloseOnTimeout , QStringLiteral("llxupnotifier"));
+        //const QString name = i18n("Update now");
+        //m_updatesAvailableNotification->setDefaultAction(name);
+        //m_updatesAvailableNotification->setActions({name});
+        //connect(m_updatesAvailableNotification, QOverload<unsigned int>::of(&KNotification::activated), this, &LliurexUpIndicator::launch_llxup);
+        //notification->sendEvent();
 
     }else{
         setStatus(PassiveStatus);
@@ -210,6 +226,7 @@ void LliurexUpIndicator::launch_llxup()
 {
     if (m_status==0){
         KRun::runCommand(QStringLiteral("pkexec lliurex-up"), nullptr);
+        if (m_updatesAvailableNotification) { m_updatesAvailableNotification->close(); }
     }    
    
 }

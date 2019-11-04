@@ -32,5 +32,7 @@ install(TARGETS lliurexupnotifierplugin DESTINATION ${QML_INSTALL_DIR}/org/kde/p
 
 install(FILES "icons/lliurexupnotifier.svg"
         DESTINATION ${DATAROOTDIR}/usr/share/plasma/desktoptheme/default/icons/)
+install(FILES "knotifications5/llxupnotifier.notifyrc"
+        DESTINATION ${DATAROOTDIR}/usr/share/knotifications5/)        
 #install(FILES "autostart/lliurex-up-indicator"
 #        DESTINATION ${DATAROOTDIR}/etc/bin)        

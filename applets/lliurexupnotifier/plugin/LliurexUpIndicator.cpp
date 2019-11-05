@@ -207,7 +207,7 @@ void LliurexUpIndicator::changeTryIconState(int state){
         notification->setText(subtooltip);
         notification->addContext( "llxupabstractnotifier");
         notification->sendEvent();*/
-        KNotification *notification = KNotification::event(QStringLiteral("remoteUpdate"), subtooltip, {}, "lliurex-up-indicator", nullptr, KNotification::CloseOnTimeout , QStringLiteral("llxupnotifier"));
+        m_remoteUpdateNotification = KNotification::event(QStringLiteral("remoteUpdate"), subtooltip, {}, "lliurex-up-indicator", nullptr, KNotification::CloseOnTimeout , QStringLiteral("llxupnotifier"));
         //const QString name = i18n("Update now");
         //m_updatesAvailableNotification->setDefaultAction(name);
         //m_updatesAvailableNotification->setActions({name});

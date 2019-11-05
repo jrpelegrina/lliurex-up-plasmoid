@@ -106,6 +106,7 @@ private:
     int last_update=0;
     LliurexUpIndicatorUtils* m_utils;
     QPointer<KNotification> m_updatesAvailableNotification;
+    QPointer<KNotification> m_remoteUpdateNotification;
 
 private slots:
 

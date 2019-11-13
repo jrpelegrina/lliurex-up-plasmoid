@@ -97,12 +97,15 @@ bool LliurexUpIndicatorUtils::getUserGroups(){
 static bool simulateUpgrade(){
 
 
+	qDebug()<<"simulando upgrade";
+
     QDBusInterface iface("org.debian.apt",  // from list on left
                      "/org/debian/apt", // from first line of screenshot
                      "org.debian.apt",  // from above Methods
                      QDBusConnection::systemBus());
 
     if (iface.isValid()){
+        qDebug()<<"IFACE valida";
         QDBusMessage result=iface.call("UpgradeSystem",true);
         QString transaction=result.arguments()[0].toString();
         
@@ -113,6 +116,7 @@ static bool simulateUpgrade(){
 
          
          if (ifaceS.isValid()){
+             qDebug()<<"IFACES VALIDA";
              ifaceS.call("Simulate");
           
              QDBusInterface ifaceR("org.debian.apt",  // from list on left
@@ -121,7 +125,7 @@ static bool simulateUpgrade(){
                              QDBusConnection::systemBus());
 
              if (ifaceR.isValid()){
-
+                qDebug()<<"IFACER VALIDA";
                 QDBusMessage reply = ifaceR.call("Get", "org.debian.apt.transaction", "Dependencies");
                  
                 //QList<QVariant> v = reply.arguments();
@@ -155,7 +159,10 @@ static bool simulateUpgrade(){
                 
                 dbusArgs.endStructure();
 
+                qDebug()<<"terminando upgrade"<<pkg_list.size();
+
                 if (pkg_list.size()>0){
+
                     return true;
                 }else{
                     return false;
@@ -164,6 +171,7 @@ static bool simulateUpgrade(){
         }            
 
     }
+    qDebug()<<"SIMULATE UPGRADE FALSE";
     return false;    
 
 }
@@ -172,8 +180,10 @@ static bool simulateUpgrade(){
 bool LliurexUpIndicatorUtils::runUpdateCache(){
 
     
-    if (!cacheUpdated){
+    qDebug()<<"IS CACHE UPDATED"<<cacheUpdated;
 
+    if (!cacheUpdated){
+    	qDebug()<<"Actualizando cache";
         if (!QDBusConnection::sessionBus().isConnected()) {
             fprintf(stderr, "Cannot connect to the D-Bus session bus.\n"
                     "To start it, run:\n"
@@ -235,9 +245,9 @@ bool LliurexUpIndicatorUtils::runUpdateCache(){
             }
         }  
 
-    return false;   
     }
     cacheUpdated=false;
+    qDebug()<<"lanzando upgrade";
     return simulateUpgrade();
 }
 

@@ -23,6 +23,8 @@ set(REQUIRED_QT_VERSION 5.9.0)
 set(KF5_MIN_VERSION 5.59.0)
 find_package(Qt5 ${REQUIRED_QT_VERSION} CONFIG REQUIRED Core Gui DBus Quick Qml Widgets X11Extras)
 find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS Plasma I18n Notifications KIO)
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fexceptions")
+
 
 find_package(X11)
 set_package_properties(X11 PROPERTIES DESCRIPTION "X11 libraries"

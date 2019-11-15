@@ -62,8 +62,6 @@ void LliurexUpIndicator::plasmoidMode(){
 
 void LliurexUpIndicator::worker(){
 
-    qDebug()<<"LAST UPDATE"<<last_update;
-    qDebug()<<"LAST CHECK"<<last_check;
 
     if (!is_working){
         if (LliurexUpIndicator::TARGET_FILE.exists() ) {
@@ -75,28 +73,24 @@ void LliurexUpIndicator::worker(){
                     last_update=last_update+5;
                     last_check=last_check+5;
                     if (last_update>FREQUENCY){
-                       qDebug()<<"LAST_UPDATE >FRECUENCY";
-                       last_update=0;
-                       last_check=0;
-                       updateCache();
-                    }else{   
+                        last_update=0;
+                        last_check=0;
+                        updateCache();
+
+                    }else{
                         if (last_check>1200){
                             last_check=0;
                             if (m_utils->isCacheUpdated()){
-                                qDebug()<<"last_check >1200";
                                 last_update=0;
                                 updateCache();
                             }
-
-                        }    
+                        }
                     }
-                       
                 }
             }
         }
-    }
 
-    
+    }
 
 }    
 
@@ -124,7 +118,7 @@ void LliurexUpIndicator::dbusDone(bool result){
     if (adbus->wait()){
         delete adbus;
     }
-    qDebug()<< "RESULT UPGRADE"<<result;
+
     if (result){
         changeTryIconState(0);
     }

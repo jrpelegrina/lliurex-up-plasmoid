@@ -102,7 +102,7 @@ private:
     bool updatedInfo=false;
     bool remoteUpdateInfo=false;
     bool is_working=false;
-    int last_check=1200;
+    int last_check=1205;
     int last_update=0;
     LliurexUpIndicatorUtils* m_utils;
     QPointer<KNotification> m_updatesAvailableNotification;

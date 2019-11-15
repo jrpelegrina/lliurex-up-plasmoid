@@ -47,13 +47,13 @@ Item {
     }
 
    
-	Plasmoid.onActivated: action_llxup()
+	//Plasmoid.onActivated: action_llxup()
 	Plasmoid.preferredRepresentation: Plasmoid.compactRepresentation
     Plasmoid.compactRepresentation: PlasmaCore.IconItem {
         source: plasmoid.icon
         MouseArea {
             anchors.fill: parent
-            onClicked: action_llxup()
+           //onClicked: action_llxup()
         }
     }
 

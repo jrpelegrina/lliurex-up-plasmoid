@@ -97,15 +97,14 @@ bool LliurexUpIndicatorUtils::getUserGroups(){
 static bool simulateUpgrade(){
 
 
-	qDebug()<<"simulando upgrade";
+    try{
+        
+        QDBusInterface iface("org.debian.apt",  // from list on left
+                         "/org/debian/apt", // from first line of screenshot
+                         "org.debian.apt",  // from above Methods
+                         QDBusConnection::systemBus());
 
-    QDBusInterface iface("org.debian.apt",  // from list on left
-                     "/org/debian/apt", // from first line of screenshot
-                     "org.debian.apt",  // from above Methods
-                     QDBusConnection::systemBus());
-
-    if (iface.isValid()){
-        qDebug()<<"IFACE valida";
+   
         QDBusMessage result=iface.call("UpgradeSystem",true);
         QString transaction=result.arguments()[0].toString();
         
@@ -115,64 +114,61 @@ static bool simulateUpgrade(){
                          QDBusConnection::systemBus());
 
          
-         if (ifaceS.isValid()){
-             qDebug()<<"IFACES VALIDA";
-             ifaceS.call("Simulate");
-          
-             QDBusInterface ifaceR("org.debian.apt",  // from list on left
-                            transaction, // from first line of screenshot
-                            "org.freedesktop.DBus.Properties",  // from above Methods
-                             QDBusConnection::systemBus());
+   
+        ifaceS.call("Simulate");
+      
+        QDBusInterface ifaceR("org.debian.apt",  // from list on left
+                        transaction, // from first line of screenshot
+                        "org.freedesktop.DBus.Properties",  // from above Methods
+                         QDBusConnection::systemBus());
 
-             if (ifaceR.isValid()){
-                qDebug()<<"IFACER VALIDA";
-                QDBusMessage reply = ifaceR.call("Get", "org.debian.apt.transaction", "Dependencies");
-                 
-                //QList<QVariant> v = reply.arguments();
-                //QVariant first = v.at(0);
-                //QDBusVariant dbvFirst = first.value<QDBusVariant>();
-                //QVariant dbvFirst=reply.arguments()[0].value<QDBusVariant>().variant();
-                //QVariant vFirst = dbvFirst.variant();
-                const QDBusArgument& dbusArgs=reply.arguments()[0].value<QDBusVariant>().variant().value<QDBusArgument>();
-                //const QDBusArgument& dbusArgs = dbvFirst.value<QDBusArgument>();
-                 
-                QVariantList pkg_list;
+        
 
-                dbusArgs.beginStructure();
+        QDBusMessage reply = ifaceR.call("Get", "org.debian.apt.transaction", "Dependencies");
+         
+        //QList<QVariant> v = reply.arguments();
+        //QVariant first = v.at(0);
+        //QDBusVariant dbvFirst = first.value<QDBusVariant>();
+        //QVariant dbvFirst=reply.arguments()[0].value<QDBusVariant>().variant();
+        //QVariant vFirst = dbvFirst.variant();
+        const QDBusArgument& dbusArgs=reply.arguments()[0].value<QDBusVariant>().variant().value<QDBusArgument>();
+        //const QDBusArgument& dbusArgs = dbvFirst.value<QDBusArgument>();
+         
+        QVariantList pkg_list;
 
-                int cont=0;
+        dbusArgs.beginStructure();
+
+        int cont=0;
+
+        while(!dbusArgs.atEnd()) {
+            cont=cont+1;
+            if (cont<6){
+                dbusArgs.beginArray();
+
                 while(!dbusArgs.atEnd()) {
-                    cont=cont+1;
-                    if (cont<6){
-                        dbusArgs.beginArray();
-
-                        while(!dbusArgs.atEnd()) {
-                            QString s;
-                            dbusArgs>>s;
-                            pkg_list.push_back(s);
-                        } 
-                    }      
-
-                    dbusArgs.endArray();
-                                   
-                }       
-                
-                dbusArgs.endStructure();
-
-                qDebug()<<"terminando upgrade"<<pkg_list.size();
-
-                if (pkg_list.size()>0){
-
-                    return true;
-                }else{
-                    return false;
+                    QString s;
+                    dbusArgs>>s;
+                    pkg_list.push_back(s);
                 } 
-            }    
-        }            
+            }      
 
-    }
-    qDebug()<<"SIMULATE UPGRADE FALSE";
-    return false;    
+            dbusArgs.endArray();
+                           
+        }       
+        
+        dbusArgs.endStructure();
+
+        if (pkg_list.size()>0){
+            return true;
+        }else{
+            return false;
+        } 
+        
+  
+    }catch(...){
+
+        return false;
+    }      
 
 }
 
@@ -180,10 +176,8 @@ static bool simulateUpgrade(){
 bool LliurexUpIndicatorUtils::runUpdateCache(){
 
     
-    qDebug()<<"IS CACHE UPDATED"<<cacheUpdated;
-
     if (!cacheUpdated){
-    	qDebug()<<"Actualizando cache";
+
         if (!QDBusConnection::sessionBus().isConnected()) {
             fprintf(stderr, "Cannot connect to the D-Bus session bus.\n"
                     "To start it, run:\n"
@@ -192,13 +186,14 @@ bool LliurexUpIndicatorUtils::runUpdateCache(){
         }
         
           
-        QDBusInterface iface("org.debian.apt",  // from list on left
-                         "/org/debian/apt", // from first line of screenshot
-                         "org.debian.apt",  // from above Methods
-                         QDBusConnection::systemBus());
+        try{
+            QDBusInterface iface("org.debian.apt",  // from list on left
+                             "/org/debian/apt", // from first line of screenshot
+                             "org.debian.apt",  // from above Methods
+                             QDBusConnection::systemBus());
 
 
-        if (iface.isValid()){
+            
             QDBusMessage resultU=iface.call("UpdateCache");
             QString transactionU=resultU.arguments()[0].toString();
             
@@ -208,46 +203,43 @@ bool LliurexUpIndicatorUtils::runUpdateCache(){
                              QDBusConnection::systemBus());
 
 
-            if (ifaceR.isValid()){
+           
 
-                ifaceR.asyncCall("Run");
+            ifaceR.asyncCall("Run");
 
-                QDBusInterface ifaceS("org.debian.apt",  // from list on left
-                                transactionU, // from first line of screenshot
-                                "org.freedesktop.DBus.Properties",  // from above Methods
-                                 QDBusConnection::systemBus());
+            QDBusInterface ifaceS("org.debian.apt",  // from list on left
+                            transactionU, // from first line of screenshot
+                            "org.freedesktop.DBus.Properties",  // from above Methods
+                             QDBusConnection::systemBus());
 
-                if (ifaceS.isValid()){
-                    std::this_thread::sleep_for(std::chrono::seconds(10));
+         
+            std::this_thread::sleep_for(std::chrono::seconds(10));
 
-                    int match=0;
-                    int cont=0;
-                    int timeout=300;
+            int match=0;
+            int cont=0;
+            int timeout=300;
 
-                    while (match==0){
-                        std::this_thread::sleep_for(std::chrono::seconds(1));
-                        QDBusMessage replyS = ifaceS.call("Get", "org.debian.apt.transaction", "ExitState");
-                        QString state = replyS.arguments()[0].value<QDBusVariant>().variant().toString();
-                        if (state != "exit-unfinished"){
-                            match=1;
-                        }else{
-                            cont=cont+1;
-                            if (cont>timeout){
-                                return false;
-                            }
-
-                        }
-
+            while (match==0){
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                QDBusMessage replyS = ifaceS.call("Get", "org.debian.apt.transaction", "ExitState");
+                QString state = replyS.arguments()[0].value<QDBusVariant>().variant().toString();
+                if (state != "exit-unfinished"){
+                    match=1;
+                }else{
+                    cont=cont+1;
+                    if (cont>timeout){
+                        return false;
                     }
 
-                   
-                }    
-            }
-        }  
+                }
 
+            }
+
+        }catch(...){
+            return false;   
+        }
     }
     cacheUpdated=false;
-    qDebug()<<"lanzando upgrade";
     return simulateUpgrade();
 }
 
